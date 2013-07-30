@@ -90,7 +90,8 @@ sub parseChat
     my $user = $args->{MsgUser};
     my $message = $args->{Msg};
         
-    if($message =~ m/^Arrived at ([0-9]+), ([0-9]+)$/)
+    # Grab coordinates from arrival messages, but only if we have a target
+    if($message =~ m/^Arrived at ([0-9]+), ([0-9]+)$/ and $botspot->{target})
     {
         my $arrived = {x => $1, y => $2};
     
@@ -153,17 +154,23 @@ sub parseChat
             
             # Otherwise let's try moving again, but increase the step
             else
-            {
-                $step->{wizard}++;
-            
-                print(Dumper($step));
+            {            
+                # If our step is positive, increment it and multiply by -1 to walk to the other side
+                if($step->{wizard} > 0)
+                {
+                    $step->{wizard}++;
+                    $step->{wizard} *= -1;
+                }
+                
+                # If our step is negative, multiply it by -1 to walk to the other side but don't increase the step
+                else
+                {
+                    $step->{wizard} *= -1;
+                }
             
                 my $newPos = straightPos($botspot->{targetPos}, $botspot->{warpPos}, $step->{wizard});
                 Commands::run("pm '$botspot->{wizard}' exec move $newPos->{x} $newPos->{y}");
-            }
-            
-            print("Oh what a happy day!\n");
-            #Commands::run("pm '$botspot->{knight}' move '$arrived->{x}' '$arrived->{y}'");
+            }            
         }
         elsif($user eq $botspot->{knight})
         {
@@ -203,8 +210,10 @@ sub freeze
     my $newPos = straightPos($botspot->{targetPos}, $botspot->{warpPos});
     $botspot->{heading} = $newPos->{heading};
     
-    # This method does not account for... anything really.
-    # Colin fix it.    
+    # When the wizard moves, parseChat ensures the wizard moves in a straight line
+    
+    # TODO: Add a maximum number of steps before the wizard gives up
+    # TODO: Once this maximum is reached, restart the script and try getting a different heading
     
     Commands::run("pm '$botspot->{wizard}' exec move $newPos->{x} $newPos->{y}");
 }
