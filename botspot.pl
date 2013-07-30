@@ -18,7 +18,7 @@ my $botspot = {'priest'		=> 'Warp Drive Active',
                 'wizard'	=> 'Chilling Effects',
                 'knight'	=> 'A Little Nudge'};
                 
-my $step = {'priest' => 0, 'wizard' => 0, 'knight' => 0};
+my $step = {'priest' => 1, 'wizard' => 1, 'knight' => 1};
 
 Commands::register(["dunk", "Gonna get dunked", \&start]);
 Plugins::register("Botspot", "Dunk them spammers", \&unload);
@@ -32,6 +32,7 @@ sub unload
     Plugins::delHooks($hooks);
 }
 
+# Accepts a position hash and returns the same hash with slightly randomized values
 sub randomPos
 {
     my($pos) = @_;
@@ -52,6 +53,37 @@ sub randomPos
             y => $offset->{y} + $pos->{y}};    
 }
 
+# Accepts two position hashes and returns a new hash in a straight line and the relative heading
+sub straightPos
+{
+    my($pos1, $pos2, $step) = @_;
+    $step ||= 1;
+    
+    # Calculate the difference between our two hashes
+    my $diffX = abs($pos1->{x} - $pos2->{x});
+    my $diffY = abs($pos1->{y} - $pos2->{y});
+    
+    
+    if($diffX)
+    {    
+        return
+        {
+            heading => 'x',
+            x => $botspot->{targetPos}->{x} + $diffX * $step,
+            y => $botspot->{targetPos}->{y}
+        };
+    }
+    elsif($diffY)
+    {
+        return
+        {
+            heading => 'y',
+            x => $botspot->{targetPos}->{x},
+            y => $botspot->{targetPos}->{y} + $diffY * $step
+        };
+    }
+}
+
 sub parseChat
 {
     my($hook, $args) = @_;
@@ -62,11 +94,11 @@ sub parseChat
     {
         my $arrived = {x => $1, y => $2};
     
-        if($user == $botspot->{priest})
+        if($user eq $botspot->{priest})
         {
-            if($step->{priest} == 0)
+            if($step->{priest} == 1)
             {
-                my $distance = distance($botspot->{pos}, $arrived);
+                my $distance = distance($botspot->{targetPos}, $arrived);
             
                 # The server moves us to the nearest available cell around the spammer
                 if($distance < 2) 
@@ -85,7 +117,7 @@ sub parseChat
                     print("We can't dunk this man. He is undunkable.\n");
                 }
             } 
-            elsif($step->{priest} == 1)
+            elsif($step->{priest} == 2)
             {
                 # We tried to move randomly, but did we actually move off the warp position?
                 if($arrived->{x} == $botspot->{warpPos}->{x} and $arrived->{y} == $botspot->{warpPos}->{y})
@@ -98,18 +130,40 @@ sub parseChat
                 else
                 {
                     Commands::run("pm '$botspot->{priest}' exec sl 27 $botspot->{warpPos}->{x} $botspot->{warpPos}->{y}");
-                    $step->{priest} += 1;
+                    $step->{priest}++;
+                    
+                    # Wait a second so our priest can cast warp portal
+                    sleep(1);
                     
                     # Start the freeze
                     freeze();
                 }
             }
         }
-        elsif($user == $botspot->{wizard})
+        elsif($user eq $botspot->{wizard})
         {
-            Commands::run("pm '$botspot->{knight}' move '$arrived->{x}' '$arrived->{y}'");
+            # Check to make sure we actually ended up in a straight line relative to the spammer
+            # Also make sure we're not on the warp cell
+            if((($botspot->{heading} eq 'x' and $botspot->{targetPos}->{y} == $arrived->{y}) or
+                ($botspot->{heading} eq 'y' and $botspot->{targetPos}->{x} == $arrived->{x})) and
+                ($arrived->{x} != $botspot->{warpPos}->{x} and $arrived->{y} != $botspot->{warpPos}->{y}))
+            {
+                Commands::run("pm '$botspot->{wizard}' ice wall '$botspot->{target}->{name}' please");
+            }
+            
+            # Otherwise let's try moving again, but increase the step
+            else
+            {
+                $step->{wizard}++;
+            
+                my $newPos = straightPos($botspot->{targetPos}, $botspot->{warpPos}, $step->{wizard});
+                Commands::run("pm '$botspot->{wizard}' exec move $newPos->{x} $newPos->{y}");
+            }
+            
+            print("Oh what a happy day!\n");
+            #Commands::run("pm '$botspot->{knight}' move '$arrived->{x}' '$arrived->{y}'");
         }
-        elsif($user == $botspot->{knight})
+        elsif($user eq $botspot->{knight})
         {
             dunk();
         }
@@ -125,12 +179,12 @@ sub start
     {
         my $pos = calcPosition($player);
         $botspot->{target} = $player;
-        $botspot->{pos} = $pos;
+        $botspot->{targetPos} = $pos;
       
         print("Player '$player->{name}' matched at $pos->{x}, $pos->{y}\n");
       
         # Reset steps in case this isn't the first dunk
-        $step = {'priest' => 0, 'wizard' => 0, 'knight' => 0};        
+        $step = {'priest' => 1, 'wizard' => 1, 'knight' => 1};        
         
         # Tell our priest to walk on top of the spammer
         Commands::run("pm '$botspot->{priest}' exec move $pos->{x} $pos->{y}");
@@ -143,7 +197,14 @@ sub start
 
 sub freeze
 {
-    print("It's about to get chilly...\n");
+    # Move our wizard in a straight line relative to the spammer
+    my $newPos = straightPos($botspot->{targetPos}, $botspot->{warpPos});
+    $botspot->{heading} = $newPos->{heading};
+    
+    # This method does not account for... anything really.
+    # Colin fix it.    
+    
+    Commands::run("pm '$botspot->{wizard}' exec move $newPos->{x} $newPos->{y}");
 }
 
 sub dunk
