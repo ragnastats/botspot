@@ -146,7 +146,7 @@ sub parseChat
             # Also make sure we're not on the warp cell
             if((($botspot->{heading} eq 'x' and $botspot->{targetPos}->{y} == $arrived->{y}) or
                 ($botspot->{heading} eq 'y' and $botspot->{targetPos}->{x} == $arrived->{x})) and
-                ($arrived->{x} != $botspot->{warpPos}->{x} and $arrived->{y} != $botspot->{warpPos}->{y}))
+                !($arrived->{x} == $botspot->{warpPos}->{x} and $arrived->{y} == $botspot->{warpPos}->{y}))
             {
                 Commands::run("pm '$botspot->{wizard}' ice wall '$botspot->{target}->{name}' please");
             }
@@ -155,6 +155,8 @@ sub parseChat
             else
             {
                 $step->{wizard}++;
+            
+                print(Dumper($step));
             
                 my $newPos = straightPos($botspot->{targetPos}, $botspot->{warpPos}, $step->{wizard});
                 Commands::run("pm '$botspot->{wizard}' exec move $newPos->{x} $newPos->{y}");
