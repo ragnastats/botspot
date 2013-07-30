@@ -149,7 +149,8 @@ sub parseChat
                 ($botspot->{heading} eq 'y' and $botspot->{targetPos}->{x} == $arrived->{x})) and
                 !($arrived->{x} == $botspot->{warpPos}->{x} and $arrived->{y} == $botspot->{warpPos}->{y}))
             {
-                Commands::run("pm '$botspot->{wizard}' ice wall '$botspot->{target}->{name}' please");
+                # Summon our Knight before casting ice wall
+                nudge();
             }
             
             # Otherwise let's try moving again, but increase the step
@@ -174,7 +175,23 @@ sub parseChat
         }
         elsif($user eq $botspot->{knight})
         {
-            dunk();
+            # TODO: Maybe we should check to ensure the knight is actually on the warpPos?
+            if($step->{knight} == 1)
+            {                
+                # Once the knight arrives: cast ice wall!
+                # TODO: Stop relying on the buffplease plugin
+                Commands::run("pm '$botspot->{wizard}' ice wall '$botspot->{target}->{name}' please");
+
+                # TODO: Figure out what direction the knight should face; sleeep(1);
+                # TODO: cast bowling bash; sleep(1);
+                # TODO: Tell the knight to GET OUTTA THERE (randomPos)
+                $step->{knight}++;
+            }
+            elsif($step->{knight} == 2)
+            {
+                # TODO: Use a similar loop as the priest to ensure the knight actually moved
+                # TODO: If successful, dunk(); else retry
+            }
         }
     }
 }
@@ -218,9 +235,17 @@ sub freeze
     Commands::run("pm '$botspot->{wizard}' exec move $newPos->{x} $newPos->{y}");
 }
 
+sub nudge
+{
+    # Move our knight to the warp position
+    Commands::run("pm '$botspot->{knight}' exec move $botspot->{warpPos}->{x} $botspot->{warpPos}->{y}");
+}
+
 sub dunk
 {
-    
+    # Bye bye spammer!
+    # TODO: Get a dead warp on our priest and figure out the correct warp ID
+    Commands::run("pm '$botspot->{priest}' exec warp 0");
 }
 
 1;
