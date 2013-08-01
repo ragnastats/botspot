@@ -130,6 +130,7 @@ sub parseChat
                 # If so, cast warp!
                 else
                 {
+					Commands::run("pm '$botspot->{priest}' exec c S-Sorry... I'm going to have to ask you to leave...");
                     Commands::run("pm '$botspot->{priest}' exec sl 27 $botspot->{warpPos}->{x} $botspot->{warpPos}->{y}");
                     $step->{priest}++;
                     
@@ -180,10 +181,13 @@ sub parseChat
             {                
                 # Once the knight arrives: cast ice wall!
                 # TODO: Stop relying on the buffplease plugin
+				Commands::run("pm '$botspot->{wizard}' exec c Haha! Eat ice, jerkbag!");
+
                 Commands::run("pm '$botspot->{wizard}' exec sp 87 '$botspot->{target}->{name}'");
                 sleep(1);
                 Commands::run("pm '$botspot->{knight}' exec look  " . aboutFace());
                 sleep(1);
+				Commands::run("pm '$botspot->{knight}' exec c Get dunked!!");
                 Commands::run("pm '$botspot->{knight}' exec sp 62 '$botspot->{target}->{name}' 1");
                 sleep(1);
                 my $random = randomPos($arrived);
@@ -264,6 +268,7 @@ sub dunk
 {
     # Bye bye spammer!
     Commands::run("pm '$botspot->{priest}' exec warp 1");
+						Commands::run("pm '$botspot->{priest}' exec c I'm really sorry about this!");
 }
 
 sub aboutFace
