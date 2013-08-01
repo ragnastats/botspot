@@ -181,20 +181,31 @@ sub parseChat
                 # Once the knight arrives: cast ice wall!
                 # TODO: Stop relying on the buffplease plugin
                 Commands::run("pm '$botspot->{wizard}' exec sp 87 '$botspot->{target}->{name}'");
-				sleep(1);
+                sleep(1);
                 Commands::run("pm '$botspot->{knight}' exec look  " . aboutFace());
-				sleep(1);
-				Commands::run("pm '$botspot->{knight}' exec sp 62 '$botspot->{target}->{name}' 1");
-				sleep(1);
-				my $random = randomPos($arrived);
-				Commands::run("pm '$botspot->{knight}' exec move $random->{x} $random->{y}");
+                sleep(1);
+                Commands::run("pm '$botspot->{knight}' exec sp 62 '$botspot->{target}->{name}' 1");
+                sleep(1);
+                my $random = randomPos($arrived);
+                Commands::run("pm '$botspot->{knight}' exec move $random->{x} $random->{y}");
                 
                 $step->{knight}++;
             }
             elsif($step->{knight} == 2)
             {
-                # TODO: Use a similar loop as the priest to ensure the knight actually moved
-                dunk();
+                # We tried to move randomly, but did we actually move off the warp position?
+                if($arrived->{x} == $botspot->{warpPos}->{x} and $arrived->{y} == $botspot->{warpPos}->{y})
+                {
+                    my $random = randomPos($arrived);
+                    Commands::run("pm '$botspot->{knight}' exec move $random->{x} $random->{y}");
+                }
+                
+                # If so, DUNK THAT JERK
+                else
+                {
+                    $step->{knight}++;
+                    dunk();
+                }
             }
         }
     }
@@ -211,10 +222,10 @@ sub start
         $botspot->{target} = $player;
         $botspot->{targetPos} = $pos;
         
-		 # Sanitize usernames by adding slashes
-		$botspot->{target}->{name} =~ s/'/\\'/g;
-		$botspot->{target}->{name} =~ s/;/\\;/g;
-		
+         # Sanitize usernames by adding slashes
+        $botspot->{target}->{name} =~ s/'/\\'/g;
+        $botspot->{target}->{name} =~ s/;/\\;/g;
+        
         print("Player '$player->{name}' matched at $pos->{x}, $pos->{y}\n");
       
         # Reset steps in case this isn't the first dunk
@@ -252,44 +263,43 @@ sub nudge
 sub dunk
 {
     # Bye bye spammer!
-    # TODO: Get a dead warp on our priest and figure out the correct warp ID
-    Commands::run("pm '$botspot->{priest}' exec warp 0");
+    Commands::run("pm '$botspot->{priest}' exec warp 1");
 }
 
 sub aboutFace
 {    if($botspot->{targetPos}->{x} == $botspot->{warpPos}->{x} && $botspot->{targetPos}->{y} < $botspot->{warpPos}->{y})
-	 {
-	    return 0
-	 }
-	 elsif($botspot->{targetPos}->{x} > $botspot->{warpPos}->{x} && $botspot->{targetPos}->{y} < $botspot->{warpPos}->{y})
-	 {
-	    return 1
-	 }
-	 elsif($botspot->{targetPos}->{x} > $botspot->{warpPos}->{x} && $botspot->{targetPos}->{y} == $botspot->{warpPos}->{y})
-	 {
-	    return 2
-	 }
-	 elsif($botspot->{targetPos}->{x} > $botspot->{warpPos}->{x} && $botspot->{targetPos}->{y} > $botspot->{warpPos}->{y})
-	 {
-	    return 3
-	 }
+     {
+        return 0
+     }
+     elsif($botspot->{targetPos}->{x} > $botspot->{warpPos}->{x} && $botspot->{targetPos}->{y} < $botspot->{warpPos}->{y})
+     {
+        return 1
+     }
+     elsif($botspot->{targetPos}->{x} > $botspot->{warpPos}->{x} && $botspot->{targetPos}->{y} == $botspot->{warpPos}->{y})
+     {
+        return 2
+     }
+     elsif($botspot->{targetPos}->{x} > $botspot->{warpPos}->{x} && $botspot->{targetPos}->{y} > $botspot->{warpPos}->{y})
+     {
+        return 3
+     }
      elsif($botspot->{targetPos}->{x} == $botspot->{warpPos}->{x} && $botspot->{targetPos}->{y} > $botspot->{warpPos}->{y})
-	 {
-	     return 4
-	 }
-	 elsif($botspot->{targetPos}->{x} < $botspot->{warpPos}->{x} && $botspot->{targetPos}->{y} > $botspot->{warpPos}->{y})
-	 {
-	    return 5
-	 }
-	 elsif($botspot->{targetPos}->{x} < $botspot->{warpPos}->{x} && $botspot->{targetPos}->{y} == $botspot->{warpPos}->{y})
-	 {
-	    return 6
-	 }
-	 elsif($botspot->{targetPos}->{x} < $botspot->{warpPos}->{x} && $botspot->{targetPos}->{y} < $botspot->{warpPos}->{y})
-	 {
-	    return 7
-	 }
-	 
+     {
+         return 4
+     }
+     elsif($botspot->{targetPos}->{x} < $botspot->{warpPos}->{x} && $botspot->{targetPos}->{y} > $botspot->{warpPos}->{y})
+     {
+        return 5
+     }
+     elsif($botspot->{targetPos}->{x} < $botspot->{warpPos}->{x} && $botspot->{targetPos}->{y} == $botspot->{warpPos}->{y})
+     {
+        return 6
+     }
+     elsif($botspot->{targetPos}->{x} < $botspot->{warpPos}->{x} && $botspot->{targetPos}->{y} < $botspot->{warpPos}->{y})
+     {
+        return 7
+     }
+     
 }
 
 1;
