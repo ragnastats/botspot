@@ -38,14 +38,14 @@ sub randomPos
     my($pos) = @_;
     
     my $offset = {
-        'x' => int(rand(2)) + 1,
-        'y' => int(rand(2)) + 1
+        'x' => int(rand(3)) + 1,
+        'y' => int(rand(3)) + 1
     };
     
-    if(int(rand(2))) {
+    if(int(rand(3))) {
         $offset->{x} *= -1;
     }
-    if(int(rand(2))) {
+    if(int(rand(3))) {
         $offset->{y} *= -1;
     }
 
@@ -116,6 +116,7 @@ sub parseChat
                 else
                 {
                     print("We can't dunk this man. He is undunkable.\n");
+                    Plugins::callHook('dunk', {status => 'failure'});
                 }
             } 
             elsif($step->{priest} == 2)
@@ -130,7 +131,8 @@ sub parseChat
                 # If so, cast warp!
                 else
                 {
-                    Commands::run("pm '$botspot->{priest}' exec sl 27 $botspot->{warpPos}->{x} $botspot->{warpPos}->{y}");
+                    # Only use level 2 warp portal, since it closes faster
+                    Commands::run("pm '$botspot->{priest}' exec sl 27 $botspot->{warpPos}->{x} $botspot->{warpPos}->{y} 2");
                     $step->{priest}++;
                     
                     # Wait a second so our priest can cast warp portal
@@ -170,7 +172,11 @@ sub parseChat
                 }
             
                 my $newPos = straightPos($botspot->{targetPos}, $botspot->{warpPos}, $step->{wizard});
-                Commands::run("pm '$botspot->{wizard}' exec move $newPos->{x} $newPos->{y}");
+            
+                if($newPos)
+                {
+                    Commands::run("pm '$botspot->{wizard}' exec move $newPos->{x} $newPos->{y}");
+                }
             }            
         }
         elsif($user eq $botspot->{knight})
@@ -231,12 +237,16 @@ sub start
         # Reset steps in case this isn't the first dunk
         $step = {'priest' => 1, 'wizard' => 1, 'knight' => 1};        
         
+        # Clear any previous warp commands
+        Commands::run("pm '$botspot->{priest}' exec warp cancel");
+
         # Tell our priest to walk on top of the spammer
         Commands::run("pm '$botspot->{priest}' exec move $pos->{x} $pos->{y}");
     }
     else
     {
         print("No players matched\n");
+        Plugins::callHook('dunk', {status => 'not found'});
     }
 }
 
@@ -244,14 +254,18 @@ sub freeze
 {
     # Move our wizard in a straight line relative to the spammer
     my $newPos = straightPos($botspot->{targetPos}, $botspot->{warpPos});
-    $botspot->{heading} = $newPos->{heading};
-    
-    # When the wizard moves, parseChat ensures the wizard moves in a straight line
-    
-    # TODO: Add a maximum number of steps before the wizard gives up
-    # TODO: Once this maximum is reached, restart the script and try getting a different heading
-    
-    Commands::run("pm '$botspot->{wizard}' exec move $newPos->{x} $newPos->{y}");
+
+    if($newPos)
+    {
+        $botspot->{heading} = $newPos->{heading};
+        
+        # When the wizard moves, parseChat ensures the wizard moves in a straight line
+        
+        # TODO: Add a maximum number of steps before the wizard gives up
+        # TODO: Once this maximum is reached, restart the script and try getting a different heading
+        
+        Commands::run("pm '$botspot->{wizard}' exec move $newPos->{x} $newPos->{y}");
+    }
 }
 
 sub nudge
@@ -264,6 +278,7 @@ sub dunk
 {
     # Bye bye spammer!
     Commands::run("pm '$botspot->{priest}' exec warp 1");
+    Plugins::callHook('dunk', {status => 'success'});
 }
 
 sub aboutFace
