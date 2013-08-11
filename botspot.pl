@@ -16,14 +16,19 @@ use Utils;
 
 my $botspot = {'priest'		=> 'Warp Drive Active',
                 'wizard'	=> 'Chilling Effects',
-                'knight'	=> 'A Little Nudge'};
+                'knight'	=> 'A Little Nudge',
+                'dancer'    => 'Hip Shaker',
+                'bard'      => 'Unbarring Octave'};
                 
 my $step = {'priest' => 1, 'wizard' => 1, 'knight' => 1};
+
+my $position = {};
 
 Commands::register(["dunk", "Gonna get dunked", \&start]);
 Plugins::register("Botspot", "Dunk them spammers", \&unload);
 
-my $hooks = Plugins::addHooks(["packet_privMsg", \&parseChat],
+my $hooks = Plugins::addHooks(['mainLoop_post', \&loop],
+                                ["packet_privMsg", \&parseChat],
                                 ["packet_partyMsg", \&parseChat]);
                             
                                 
@@ -84,6 +89,22 @@ sub straightPos
     }
 }
 
+sub loop
+{
+    my $time = time();
+
+    # Wait for the warp portal to close before closing the chats
+    if($botspot->{chatOpened} and $time > $botspot->{chatOpened} + 16)
+    {
+        Commands::run("p exec chat leave");
+        
+        # Amp
+        Commands::run("p exec ss 304");
+        delete($botspot->{chatOpened});
+        Plugins::callHook('dunk', {status => 'success'});
+    }
+}
+
 sub parseChat
 {
     my($hook, $args) = @_;
@@ -106,7 +127,7 @@ sub parseChat
                 {
                     # Move off the current cell before casting warp
                     my $random = randomPos($arrived);
-                    Commands::run("pm '$botspot->{priest}' exec move $random->{x} $random->{y}");
+                    Commands::run("p $botspot->{priest} exec move $random->{x} $random->{y}");
 
                     $botspot->{warpPos} = {x => $arrived->{x}, y =>$arrived->{y}};
                     $step->{priest} += 1
@@ -125,24 +146,37 @@ sub parseChat
                 if($arrived->{x} == $botspot->{warpPos}->{x} and $arrived->{y} == $botspot->{warpPos}->{y})
                 {
                     my $random = randomPos($arrived);
-                    Commands::run("pm '$botspot->{priest}' exec move $random->{x} $random->{y}");
+                    Commands::run("p $botspot->{priest} exec move $random->{x} $random->{y}");
                 }
                 
                 # If so, cast warp!
                 else
                 {
                     # Only use level 2 warp portal, since it closes faster
-                    Commands::run("pm '$botspot->{priest}' exec sl 27 $botspot->{warpPos}->{x} $botspot->{warpPos}->{y} 2");
-					#Commands::run("pm '$botspot->{priest}' exec c S-Sorry... I'm going to have to ask you to leave...");
+                    Commands::run("p $botspot->{priest} exec sl 27 $botspot->{warpPos}->{x} $botspot->{warpPos}->{y} 2");
+					#Commands::run("p $botspot->{priest} exec c S-Sorry... I'm going to have to ask you to leave...");
                     $step->{priest}++;
-                    
-                    # Wait a second so our priest can cast warp portal
-                    sleep(1);
-                    
-                    # Start the freeze
-                    freeze();
+
+                    # Move our dance team into position
+                    $position->{priest} = $arrived;
+                    dance();
                 }
             }
+        }
+        elsif($user eq $botspot->{dancer})
+        {
+            # Move our bard next
+            $position->{dancer} = $arrived;
+            strum();
+        }
+        elsif($user eq $botspot->{bard})
+        {
+            # TODO: Make sure the bard and dancer are actually 1 cell apart
+            Commands::run("p exec ss 312");
+            
+            # Start the freeze
+            $position->{bard} = $arrived;
+            freeze();
         }
         elsif($user eq $botspot->{wizard})
         {
@@ -176,7 +210,7 @@ sub parseChat
             
                 if($newPos)
                 {
-                    Commands::run("pm '$botspot->{wizard}' exec move $newPos->{x} $newPos->{y}");
+                    Commands::run("p $botspot->{wizard} exec move $newPos->{x} $newPos->{y}");
                 }
             }            
         }
@@ -184,38 +218,40 @@ sub parseChat
         {
             # TODO: Maybe we should check to ensure the knight is actually on the warpPos?
             if($step->{knight} == 1)
-            {                
-                # Once the knight arrives: cast ice wall!
-                # TODO: Stop relying on the buffplease plugin
-                Commands::run("pm '$botspot->{wizard}' exec sp 87 '$botspot->{target}->{name}'");
-				#Commands::run("pm '$botspot->{wizard}' exec c Haha! Eat ice, jerkbag!");
-                sleep(1);
-                Commands::run("pm '$botspot->{knight}' exec look  " . aboutFace());
-                sleep(1);
-                Commands::run("pm '$botspot->{knight}' exec sp 62 '$botspot->{target}->{name}' 1");
-				#Commands::run("pm '$botspot->{knight}' exec c Get dunked!!");
-                sleep(1);
-                my $random = randomPos($arrived);
-                Commands::run("pm '$botspot->{knight}' exec move $random->{x} $random->{y}");
-                
-                $step->{knight}++;
-            }
-            elsif($step->{knight} == 2)
             {
+                # Once the knight arrives: cast ice wall!
+                Commands::run("p $botspot->{wizard} exec sp 87 '$botspot->{target}->{name}'");
+				#Commands::run("p $botspot->{wizard} exec c Haha! Eat ice, jerkbag!");
+                sleep(1);
+                Commands::run("p $botspot->{knight} exec look  " . aboutFace());
+                sleep(1);
+                Commands::run("p $botspot->{knight} exec sp 62 '$botspot->{target}->{name}' 1");
+				#Commands::run("p $botspot->{knight} exec c Get dunked!!");
+                sleep(1);
+                Commands::run('p exec chat create "GET DUNKED FOOL"');
+                $botspot->{chatOpened} = time();
+                dunk();
+#                my $random = randomPos($arrived);
+#                Commands::run("p $botspot->{knight} exec move $random->{x} $random->{y}");
+                
+#                $step->{knight}++;
+            }
+#            elsif($step->{knight} == 2)
+#            {
                 # We tried to move randomly, but did we actually move off the warp position?
-                if($arrived->{x} == $botspot->{warpPos}->{x} and $arrived->{y} == $botspot->{warpPos}->{y})
-                {
-                    my $random = randomPos($arrived);
-                    Commands::run("pm '$botspot->{knight}' exec move $random->{x} $random->{y}");
-                }
+#                if($arrived->{x} == $botspot->{warpPos}->{x} and $arrived->{y} == $botspot->{warpPos}->{y})
+#                {
+#                    my $random = randomPos($arrived);
+#                    Commands::run("p $botspot->{knight} exec move $random->{x} $random->{y}");
+#                }
                 
                 # If so, DUNK THAT JERK
-                else
-                {
-                    $step->{knight}++;
-                    dunk();
-                }
-            }
+#                else
+#                {
+#                    $step->{knight}++;
+#                    dunk();
+#                }
+#            }
         }
     }
 }
@@ -241,16 +277,31 @@ sub start
         $step = {'priest' => 1, 'wizard' => 1, 'knight' => 1};        
         
         # Clear any previous warp commands
-        Commands::run("pm '$botspot->{priest}' exec warp cancel");
+        Commands::run("p $botspot->{priest} exec warp cancel");
 
+        # Use amp
+        Commands::run("p exec ss 304");
+        
         # Tell our priest to walk on top of the spammer
-        Commands::run("pm '$botspot->{priest}' exec move $pos->{x} $pos->{y}");
+        Commands::run("p $botspot->{priest} exec move $pos->{x} $pos->{y}");
     }
     else
     {
         print("No players matched\n");
         Plugins::callHook('dunk', {status => 'not found'});
     }
+}
+
+sub dance
+{    
+    # Tell our dancer to walk on top of the priest
+    Commands::run("p $botspot->{dancer} exec move $position->{priest}->{x} $position->{priest}->{y}");
+}
+
+sub strum
+{   
+    # Tell our bard to walk on top of the dancer
+    Commands::run("p $botspot->{bard} exec move $position->{dancer}->{x} $position->{dancer}->{y}");
 }
 
 sub freeze
@@ -267,22 +318,21 @@ sub freeze
         # TODO: Add a maximum number of steps before the wizard gives up
         # TODO: Once this maximum is reached, restart the script and try getting a different heading
         
-        Commands::run("pm '$botspot->{wizard}' exec move $newPos->{x} $newPos->{y}");
+        Commands::run("p $botspot->{wizard} exec move $newPos->{x} $newPos->{y}");
     }
 }
 
 sub nudge
 {
     # Move our knight to the warp position
-    Commands::run("pm '$botspot->{knight}' exec move $botspot->{warpPos}->{x} $botspot->{warpPos}->{y}");
+    Commands::run("p $botspot->{knight} exec move $botspot->{warpPos}->{x} $botspot->{warpPos}->{y}");
 }
 
 sub dunk
 {
     # Bye bye spammer!
-    Commands::run("pm '$botspot->{priest}' exec warp 1");
-    Plugins::callHook('dunk', {status => 'success'});
-	#Commands::run("pm '$botspot->{priest}' exec c I'm really sorry about this!");
+    Commands::run("p $botspot->{priest} exec warp 1");
+	#Commands::run("p $botspot->{priest} exec c I'm really sorry about this!");
 }
 
 sub aboutFace
