@@ -232,7 +232,7 @@ sub parseChat
                 sleep(1);
                 Commands::run('p exec chat create "GET DUNKED FOOL"');
                 # Run north incase you can't create chats
-                Commands::run("p $botspot->{knight} north 10");
+                Commands::run("p $botspot->{knight} exec north 10");
                 $botspot->{chatOpened} = time();
                 dunk();
 #                my $random = randomPos($arrived);
