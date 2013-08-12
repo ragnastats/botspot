@@ -97,9 +97,10 @@ sub loop
     if($botspot->{chatOpened} and $time > $botspot->{chatOpened} + 16)
     {
         Commands::run("p exec chat leave");
+        sleep(1);
         
         # Amp
-        Commands::run("p exec ss 304");
+        Commands::run("p $botspot->{dancer} exec ss 304");
         delete($botspot->{chatOpened});
         Plugins::callHook('dunk', {status => 'success'});
     }
@@ -172,10 +173,11 @@ sub parseChat
         elsif($user eq $botspot->{bard})
         {
             # TODO: Make sure the bard and dancer are actually 1 cell apart
-            Commands::run("p exec ss 312");
+            Commands::run("p $botspot->{dancer} exec ss 312");
             
             # Start the freeze
             $position->{bard} = $arrived;
+            sleep(1);
             freeze();
         }
         elsif($user eq $botspot->{wizard})
@@ -229,6 +231,8 @@ sub parseChat
 				#Commands::run("p $botspot->{knight} exec c Get dunked!!");
                 sleep(1);
                 Commands::run('p exec chat create "GET DUNKED FOOL"');
+                # Run north incase you can't create chats
+                Commands::run("p $botspot->{knight} north 10");
                 $botspot->{chatOpened} = time();
                 dunk();
 #                my $random = randomPos($arrived);
@@ -279,8 +283,11 @@ sub start
         # Clear any previous warp commands
         Commands::run("p $botspot->{priest} exec warp cancel");
 
+        # Leave the chat, just in case
+        Commands::run("p exec chat leave");
+        
         # Use amp
-        Commands::run("p exec ss 304");
+        Commands::run("p $botspot->{dancer} exec ss 304");
         
         # Tell our priest to walk on top of the spammer
         Commands::run("p $botspot->{priest} exec move $pos->{x} $pos->{y}");
