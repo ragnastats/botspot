@@ -173,6 +173,7 @@ sub parseChat
         elsif($user eq $botspot->{bard})
         {
             # TODO: Make sure the bard and dancer are actually 1 cell apart
+            # TODO: Make sure power cord was actually cast (temporary solution: give priest some bgems to use in case there's a problem)
             Commands::run("p $botspot->{dancer} exec ss 312");
             
             # Start the freeze
@@ -229,12 +230,12 @@ sub parseChat
                 sleep(1);
                 Commands::run("p $botspot->{knight} exec sp 62 '$botspot->{target}->{name}' 1");
 				#Commands::run("p $botspot->{knight} exec c Get dunked!!");
+                dunk();
                 sleep(1);
                 Commands::run('p exec chat create "GET DUNKED FOOL"');
                 # Run north incase you can't create chats
                 Commands::run("p $botspot->{knight} exec north 10");
                 $botspot->{chatOpened} = time();
-                dunk();
 #                my $random = randomPos($arrived);
 #                Commands::run("p $botspot->{knight} exec move $random->{x} $random->{y}");
                 
