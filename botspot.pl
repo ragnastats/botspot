@@ -13,6 +13,8 @@ use Plugins;
 use Network;
 use Globals;
 use Utils;
+use Log qw(message warning error debug);
+
 
 my $botspot = {'priest'		=> 'Warp Drive Active',
                 'wizard'	=> 'Chilling Effects',
@@ -43,14 +45,14 @@ sub randomPos
     my($pos) = @_;
     
     my $offset = {
-        'x' => int(rand(3)) + 1,
-        'y' => int(rand(3)) + 1
+        'x' => int(rand(3)) + 3,
+        'y' => int(rand(3)) + 3
     };
     
-    if(int(rand(3))) {
+    if(int(rand(1))) {
         $offset->{x} *= -1;
     }
-    if(int(rand(3))) {
+    if(int(rand(1))) {
         $offset->{y} *= -1;
     }
 
@@ -94,7 +96,7 @@ sub loop
     my $time = time();
 
     # Wait for the warp portal to close before closing the chats
-    if($botspot->{chatOpened} and $time > $botspot->{chatOpened} + 16)
+    if($botspot->{chatOpened} and $time > $botspot->{chatOpened} + 15)
     {
         Commands::run("p exec chat leave");
         sleep(1);
@@ -223,7 +225,7 @@ sub parseChat
             if($step->{knight} == 1)
             {
                 # Once the knight arrives: cast ice wall!
-                Commands::run("p $botspot->{wizard} exec sp 87 '$botspot->{target}->{name}'");
+                Commands::run("p $botspot->{wizard} exec sl 87 $botspot->{targetPos}->{x} $botspot->{targetPos}->{y}");
 				#Commands::run("p $botspot->{wizard} exec c Haha! Eat ice, jerkbag!");
                 sleep(1);
                 Commands::run("p $botspot->{knight} exec look  " . aboutFace());
@@ -233,8 +235,9 @@ sub parseChat
                 dunk();
                 sleep(1);
                 Commands::run('p exec chat create "GET DUNKED FOOL"');
+#                Commands::run('p exec chat create "Autobots ROLL OUT!"');
                 # Run north incase you can't create chats
-                Commands::run("p $botspot->{knight} exec north 10");
+                Commands::run("p $botspot->{knight} exec north 5");
                 $botspot->{chatOpened} = time();
 #                my $random = randomPos($arrived);
 #                Commands::run("p $botspot->{knight} exec move $random->{x} $random->{y}");
@@ -338,6 +341,29 @@ sub nudge
 
 sub dunk
 {
+    my $target =
+    {
+        time    => time(),
+        account => unpack('V', $botspot->{target}->{ID}),
+        name => $botspot->{target}->{name},
+        map     => $field->baseName(),
+        x => $botspot->{targetPos}->{x},
+        y => $botspot->{targetPos}->{y},
+        job => $botspot->{target}->{jobID},
+        level => $botspot->{target}->{lv},
+        sex => $botspot->{target}->{sex},
+        hair =>
+        {
+            style => $botspot->{target}->{hair_style},
+            color => $botspot->{target}->{hair_color}
+        }
+    };
+
+    $Data::Dumper::Terse = 1;        # Output less
+    $Data::Dumper::Indent = 0;       # Don't output whitespace
+
+    debug Dumper($target) . "\n", 'dunk_log', 1;
+
     # Bye bye spammer!
     Commands::run("p $botspot->{priest} exec warp 1");
 	#Commands::run("p $botspot->{priest} exec c I'm really sorry about this!");
