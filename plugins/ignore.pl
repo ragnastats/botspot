@@ -162,7 +162,6 @@ sub loop
                         if($pos->{x} == $actor->{pos_to}->{x} and
                             $pos->{y} == $actor->{pos_to}->{y})
                         {
-                            Commands::run("p exec follow stop");
         #                    Commands::run("p exec plugin reload all");
 
                             print("Spammer? $spammer \n");

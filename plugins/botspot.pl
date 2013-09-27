@@ -24,6 +24,7 @@ my $botspot = {'priest'		=> 'Warp Drive Active',
                 
 my $step = {'priest' => 1, 'wizard' => 1, 'knight' => 1};
 
+my $ready = {};
 my $position = {};
 
 Commands::register(["dunk", "Gonna get dunked", \&start]);
@@ -64,7 +65,7 @@ sub randomPos
 sub straightPos
 {
     my($pos1, $pos2, $step) = @_;
-    $step ||= 1;
+    $step ||= -1;
     
     # Calculate the difference between our two hashes
     my $diffX = abs($pos1->{x} - $pos2->{x});
@@ -95,6 +96,30 @@ sub loop
 {
     my $time = time();
 
+    # We ready? LET'S GO
+    if($ready->{wizard} and $ready->{knight})
+    {
+        # Power cord!
+        Commands::run("p $botspot->{dancer} exec ss 312");
+        # Ice wall!
+        Commands::run("p $botspot->{wizard} exec sl 87 $botspot->{targetPos}->{x} $botspot->{targetPos}->{y}");
+        # Line up the shot...
+        Commands::run("p $botspot->{knight} exec look  " . aboutFace());
+        sleep(0.5);
+        # Bowling bash!
+        Commands::run("p $botspot->{knight} exec sp 62 '$botspot->{target}->{name}' 1");
+        dunk();
+        sleep(1);
+        Commands::run('p exec chat create "GET DUNKED FOOL"');
+
+        # Run north incase you can't create chats
+        # TODO: Run in the direction the ice wall isn't
+        Commands::run("p $botspot->{knight} exec north 5");
+        $botspot->{chatOpened} = time();
+
+        $ready = {};
+    }
+
     # Wait for the warp portal to close before closing the chats
     if($botspot->{chatOpened} and $time > $botspot->{chatOpened} + 15)
     {
@@ -106,6 +131,7 @@ sub loop
         delete($botspot->{chatOpened});
         Plugins::callHook('dunk', {status => 'success'});
     }
+
 }
 
 sub parseChat
@@ -162,10 +188,18 @@ sub parseChat
 
                     # Move our dance team into position
                     $position->{priest} = $arrived;
-                    dance();
+
+                    Commands::run("p $botspot->{dancer} exec follow $botspot->{priest}");
+                    Commands::run("p $botspot->{bard} exec follow $botspot->{dancer}");
+
+                    # Move the wizard and knight into position at the same time
+                    freeze();
+                    nudge();
+                    #dance();
                 }
             }
         }
+=pod
         elsif($user eq $botspot->{dancer})
         {
             # Move our bard next
@@ -183,6 +217,7 @@ sub parseChat
             sleep(1);
             freeze();
         }
+=cut
         elsif($user eq $botspot->{wizard})
         {
             # Check to make sure we actually ended up in a straight line relative to the spammer
@@ -192,7 +227,8 @@ sub parseChat
                 !($arrived->{x} == $botspot->{warpPos}->{x} and $arrived->{y} == $botspot->{warpPos}->{y}))
             {
                 # Summon our Knight before casting ice wall
-                nudge();
+                #nudge();
+                $ready->{wizard} = 1;
             }
             
             # Otherwise let's try moving again, but increase the step
@@ -222,44 +258,28 @@ sub parseChat
         elsif($user eq $botspot->{knight})
         {
             # TODO: Maybe we should check to ensure the knight is actually on the warpPos?
+            $ready->{knight} = 1;
+
+=pod
             if($step->{knight} == 1)
             {
                 # Once the knight arrives: cast ice wall!
                 Commands::run("p $botspot->{wizard} exec sl 87 $botspot->{targetPos}->{x} $botspot->{targetPos}->{y}");
-				#Commands::run("p $botspot->{wizard} exec c Haha! Eat ice, jerkbag!");
-                sleep(1);
+               # sleep(1);
                 Commands::run("p $botspot->{knight} exec look  " . aboutFace());
-                sleep(1);
+                sleep(0.5);
                 Commands::run("p $botspot->{knight} exec sp 62 '$botspot->{target}->{name}' 1");
-				#Commands::run("p $botspot->{knight} exec c Get dunked!!");
                 dunk();
                 sleep(1);
                 Commands::run('p exec chat create "GET DUNKED FOOL"');
-#                Commands::run('p exec chat create "Autobots ROLL OUT!"');
+
                 # Run north incase you can't create chats
+                # TODO: Run in the direction the ice wall isn't
                 Commands::run("p $botspot->{knight} exec north 5");
                 $botspot->{chatOpened} = time();
-#                my $random = randomPos($arrived);
-#                Commands::run("p $botspot->{knight} exec move $random->{x} $random->{y}");
-                
-#                $step->{knight}++;
+
             }
-#            elsif($step->{knight} == 2)
-#            {
-                # We tried to move randomly, but did we actually move off the warp position?
-#                if($arrived->{x} == $botspot->{warpPos}->{x} and $arrived->{y} == $botspot->{warpPos}->{y})
-#                {
-#                    my $random = randomPos($arrived);
-#                    Commands::run("p $botspot->{knight} exec move $random->{x} $random->{y}");
-#                }
-                
-                # If so, DUNK THAT JERK
-#                else
-#                {
-#                    $step->{knight}++;
-#                    dunk();
-#                }
-#            }
+=cut
         }
     }
 }
@@ -289,6 +309,9 @@ sub start
 
         # Leave the chat, just in case
         Commands::run("p exec chat leave");
+
+        # Stop following, just in case
+        Commands::run("p exec follow stop");
         
         # Use amp
         Commands::run("p $botspot->{dancer} exec ss 304");
@@ -303,6 +326,7 @@ sub start
     }
 }
 
+=pod
 sub dance
 {    
     # Tell our dancer to walk on top of the priest
@@ -314,6 +338,7 @@ sub strum
     # Tell our bard to walk on top of the dancer
     Commands::run("p $botspot->{bard} exec move $position->{dancer}->{x} $position->{dancer}->{y}");
 }
+=cut
 
 sub freeze
 {
@@ -366,7 +391,6 @@ sub dunk
 
     # Bye bye spammer!
     Commands::run("p $botspot->{priest} exec warp 1");
-	#Commands::run("p $botspot->{priest} exec c I'm really sorry about this!");
 }
 
 sub aboutFace
