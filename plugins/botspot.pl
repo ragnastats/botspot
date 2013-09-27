@@ -115,6 +115,9 @@ sub loop
         # Run north incase you can't create chats
         # TODO: Run in the direction the ice wall isn't
         Commands::run("p $botspot->{knight} exec north 5");
+
+        Commands::run("p exec follow $char->{name}");
+
         $botspot->{chatOpened} = time();
 
         $ready = {};
@@ -191,6 +194,9 @@ sub parseChat
 
                     Commands::run("p $botspot->{dancer} exec follow $botspot->{priest}");
                     Commands::run("p $botspot->{bard} exec follow $botspot->{dancer}");
+
+                    # Sleep for a second after casting portal
+                    sleep(1);
 
                     # Move the wizard and knight into position at the same time
                     freeze();

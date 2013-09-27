@@ -76,7 +76,7 @@ sub loop
 					$dunk->{replay} = 0;
 					Commands::run("replay stop");
 					Commands::run("move stop");
-					$dunk->{timeout} = time() + 3;
+					$dunk->{timeout} = time() + 8;
 					
 					if($config{spammer_silence})
 					{
@@ -187,7 +187,7 @@ sub loop
                                 # Try again
                                 unshift(@{$dunk->{queue}}, $dunk->{target});
                                 delete($dunk->{target});
-                                $dunk->{timeout} = time() + 0.5; # Try once a second
+                                $dunk->{timeout} = time() + 1; # Once a second
                                 $dunk->{tries}++;
                             }
                         }
