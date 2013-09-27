@@ -12,6 +12,7 @@ package Ignore;
 use strict;
 use Storable;
 use Data::Dumper;
+use Time::HiRes qw(time);
 
 # Kore includes
 use Settings;
@@ -19,6 +20,8 @@ use Plugins;
 use Network;
 use Globals;
 use Utils;
+
+
 
 our $spam = {};
 our $dunk ||= {'replay' => 1};
@@ -125,6 +128,7 @@ sub loop
 			$dunk->{replay} = 1;
 			Commands::run("replay start");
 			Commands::run("p exec follow $char->{name}");
+            Commands::run("follow stop");
 		}
 		
 		if($dunk->{queue} and @{$dunk->{queue}} and $time > $dunk->{timeout})
@@ -152,12 +156,42 @@ sub loop
 					
 					if($spammer)
 					{
-						Commands::run("p exec follow stop");
-	#                    Commands::run("p exec plugin reload all");
+                        my $pos = calcPosition($actor);
+                        
+                        # Only start dunking if they're not moving
+                        if($pos->{x} == $actor->{pos_to}->{x} and
+                            $pos->{y} == $actor->{pos_to}->{y})
+                        {
+                            Commands::run("p exec follow stop");
+        #                    Commands::run("p exec plugin reload all");
 
-						print("Spammer? $spammer \n");
-						
-						Commands::run("dunk $spammer");
+                            print("Spammer? $spammer \n");
+                            
+                            Commands::run("dunk $spammer");
+                        }
+                        else
+                        {
+                            print("Calc\n");
+                            print(Dumper());
+                            print("Pos\n");
+                            print(Dumper($actor->{pos}));
+                            print("Pos to\n");
+                            print(Dumper($actor->{pos_to}));
+                            if($dunk->{tries} > 20)
+                            {
+                                # Give up
+                                delete($dunk->{target});
+                                $dunk->{timeout} = time();
+                            }
+                            else
+                            {
+                                # Try again
+                                unshift(@{$dunk->{queue}}, $dunk->{target});
+                                delete($dunk->{target});
+                                $dunk->{timeout} = time() + 0.5; # Try once a second
+                                $dunk->{tries}++;
+                            }
+                        }
 					}
 					else
 					{
@@ -201,6 +235,7 @@ sub parseDunk
 				$dunk->{replay} = 1;
 				Commands::run("replay start");
 				Commands::run("p exec follow $char->{name}");
+                Commands::run("follow stop");
 			}
 			else
 			{
@@ -311,7 +346,8 @@ sub parseChat
 				$dunk->{replay} = 0;
 				Commands::run("replay stop");
 				Commands::run("move stop");
-				$dunk->{timeout} = time() + 15;
+				$dunk->{timeout} = time() + 90;
+                Commands::run("follow $actor->{name}");
 		
 				$args->{return} = 1;
 				$args->{mangle} = 2;
@@ -333,6 +369,19 @@ sub parseActor
 		$config{spammer_silence}	||= 1;
 
 		my($hook, $args) = @_;
+
+        
+#        if($args->{lv} == 1 and $args->{name} ne "Little Poring" and $args->{manner} == 0 and $config{follow} == 0)
+#        {
+#            print("Level 1? Looks suspicious...\n");
+#            $dunk->{replay} = 0;
+#            Commands::run("replay stop");
+#            Commands::run("move stop");
+#            Commands::run("follow $args->{name}");
+#            $dunk->{timeout} = time() + 30;
+#
+#            print(Dumper($args));
+#        }
 		
 		if($spam->{$args->{ID}}->{ignored})
 		{
@@ -347,6 +396,7 @@ sub parseActor
 				$dunk->{replay} = 0;
 				Commands::run("replay stop");
 				Commands::run("move stop");
+                Commands::run("follow $actor->{name}");
 				$dunk->{timeout} = time() + 3;
 			}
 			
