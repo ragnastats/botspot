@@ -319,10 +319,10 @@ sub parseChat
 			}
 			
 			# Strip characters used as spacers.
-			$chat->{message} =~ s/[ `'"\[\]\(\)~;]//g;
+			$chat->{message} =~ s/[ `'"\[\]\(\)~;\|]//g;
 			
 			# Generic spam messages.
-			$spamScore++ while($chat->{message} =~ /==|3w|3w|3w|__|vvv?|www|com|c0m|c0m|c0m|net|0rg|0rg|0rg|org|selling|zeny|faster|cheaper|instant|mmook|irozenyshop|bonus|bonvs|safe|150m|200m|100m|usd|goldcentral|irozenyshop|arozeny|gridgold|buyrozeny|buyr0zeny|buyr0zeny|buyr0zeny|wait/ig);
+			$spamScore++ while($chat->{message} =~ /==|__|3w|vvv?|www|com|c0m|net|0rg|org|selling|zeny|faster|cheaper|instant|mmook|irozenyshop|bonus|bonvs|safe|150m|200m|100m|usd|goldcentral|irozenyshop|arozeny|gridgold|buyrozeny|buyr0zeny|buyr0zeny|buyr0zeny|wait/ig);
 			
 			print("$spamScore - $chat->{message}\n");
 			
