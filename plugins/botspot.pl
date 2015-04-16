@@ -19,8 +19,8 @@ use Log qw(message warning error debug);
 my $botspot = {'priest'		=> 'Warp Drive Active',
                 'wizard'	=> 'Chilling Effects',
                 'knight'	=> 'A Little Nudge',
-                'dancer'    => 'Hip Shaker',
-                'bard'      => 'Unbarring Octave'};
+                'dancer'    => 'Faye Romani',
+                'bard'      => 'One Man Band'};
                 
 my $step = {'priest' => 1, 'wizard' => 1, 'knight' => 1};
 
@@ -46,14 +46,17 @@ sub randomPos
     my($pos) = @_;
     
     my $offset = {
-        'x' => int(rand(3)) + 3,
-        'y' => int(rand(3)) + 3
+        'x' => int(rand(3) + 0.5) + 3,
+        'y' => int(rand(3) + 0.5) + 3
     };
     
-    if(int(rand(1))) {
+    if(int(rand(1) + 0.5))
+    {
         $offset->{x} *= -1;
     }
-    if(int(rand(1))) {
+    
+    if(int(rand(1) + 0.5))
+    {
         $offset->{y} *= -1;
     }
 
